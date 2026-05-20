@@ -1,18 +1,21 @@
+Вот твой код с полностью переведенными на английский язык комментариями. Теперь он выглядит как профессиональный международный проект для GitHub!
+
+```python
 import sys
 import subprocess
 import os
 import re
 
-# ── Автоматическая установка imageio-ffmpeg при запуске ────────────────
+# ── Automatically install imageio-ffmpeg on startup ───────────────────
 try:
     import imageio_ffmpeg
 except ImportError:
-    print("imageio-ffmpeg не найден. Устанавливаю автоматически...")
+    print("imageio-ffmpeg not found. Installing automatically...")
     try:
-        # Пытаемся установить с флагом для современных дистрибутивов Linux
+        # Attempt installation with a flag for modern Linux distributions
         subprocess.run([sys.executable, "-m", "pip", "install", "imageio-ffmpeg", "--break-system-packages"], check=True)
     except subprocess.CalledProcessError:
-        # Если не вышло, ставим стандартным способом (для Windows/Mac)
+        # Fallback to the standard installation method (for Windows/macOS)
         subprocess.run([sys.executable, "-m", "pip", "install", "imageio-ffmpeg"], check=True)
     import imageio_ffmpeg
 
@@ -22,28 +25,28 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import threading
 
-# ── Функция получения инфо без использования ffprobe ───────────────────
+# ── Function to retrieve video info without using ffprobe ─────────────
 def get_video_info(path):
-    """Возвращает (duration_seconds, has_audio) используя только ffmpeg"""
+    """Returns (duration_seconds, has_audio) using only ffmpeg"""
     result = subprocess.run(
         [FFMPEG, "-nostdin", "-i", path],
         capture_output=True, text=True, errors="ignore"
     )
     stderr = result.stderr
 
-    # Ищем длительность: Duration: 00:02:30.45
+    # Parse duration regex pattern: Duration: 00:02:30.45
     duration = 0.0
     match = re.search(r"Duration:\s*(\d+):(\d+):(\d+)[\.,](\d+)", stderr)
     if match:
         h, m, s, ms = match.groups()
         duration = int(h) * 3600 + int(m) * 60 + int(s) + float(f"0.{ms}")
 
-    # Проверяем наличие аудиопотока
+    # Check for the presence of an audio stream
     has_audio = bool(re.search(r"Stream #.*Audio:", stderr))
     
     return duration, has_audio
 
-# ── Основная функция сжатия ──────────────────────────────────────────
+# ── Main compression function ─────────────────────────────────────────
 def compress_video(input_path, output_path, target_mb, crf,
                    audio_bitrate_k, progress_cb, done_cb, cancel_ev):
     try:
@@ -63,11 +66,11 @@ def compress_video(input_path, output_path, target_mb, crf,
 
         vbr = f"{video_bitrate // 1000}k"
 
-        # ── Pass 1 (Анализ) ──────────────────────────────────────────
+        # ── Pass 1 (Analysis) ──────────────────────────────────────────
         progress_cb(0, "Pass 1: analyzing…")
         
-        # Для 2-pass кодирования по битрейту убираем противоречивый параметр -crf.
-        # Используем универсальный вывод "-" вместо системных NUL//dev/null для стабильности.
+        # Omit the conflicting -crf parameter for 2-pass bitrate encoding.
+        # Use a universal "-" output instead of system NUL//dev/null for optimal stability.
         p1 = subprocess.run(
             [FFMPEG, "-nostdin", "-y", "-i", input_path,
              "-c:v", "libx264", "-b:v", vbr,
@@ -82,12 +85,12 @@ def compress_video(input_path, output_path, target_mb, crf,
             done_cb(False, "Pass 1 failed:\n" + p1.stderr[-400:])
             return
 
-        # ── Pass 2 (Кодирование) ──────────────────────────────────────
+        # ── Pass 2 (Encoding) ──────────────────────────────────────────
         progress_cb(2, "Pass 2: Encoding starting…")
         audio_args = (["-c:a", "aac", "-b:a", f"{audio_bitrate_k}k"]
                       if has_audio else ["-an"])
 
-        # Направляем stderr в DEVNULL, чтобы переполнение логов не вызывало мертвую блокировку (deadlock)
+        # Redirect stderr to DEVNULL to prevent log buffer overflows from causing a deadlock
         proc = subprocess.Popen(
             [FFMPEG, "-nostdin", "-y", "-i", input_path,
              "-c:v", "libx264", "-b:v", vbr,
@@ -106,7 +109,7 @@ def compress_video(input_path, output_path, target_mb, crf,
             if line.startswith("out_time_ms="):
                 try:
                     ms = int(line.strip().split("=")[1])
-                    # Вычисляем прогресс (начиная со 2% до 99%)
+                    # Calculate progress scaling from 2% to 99%
                     pct = min(99, max(2, int(ms / 1e6 / duration * 100)))
                     progress_cb(pct, f"Encoding… {pct}%")
                 except ValueError:
@@ -117,7 +120,7 @@ def compress_video(input_path, output_path, target_mb, crf,
             done_cb(False, "Pass 2 failed. Verify your output path or permissions.")
             return
 
-        # Чистим временные лог-файлы ffmpeg, созданные при 2-pass сжатии
+        # Clean up temporary FFmpeg log files generated during 2-pass compression
         for log_file in ["ffmpeg2pass-0.log", "ffmpeg2pass-0.log.mbtree"]:
             if os.path.exists(log_file):
                 try: os.remove(log_file)
@@ -130,7 +133,7 @@ def compress_video(input_path, output_path, target_mb, crf,
         done_cb(False, str(e))
 
 # ════════════════════════════════════════════════════════════
-#  UI (Интерфейс без изменений, сохранен твой красивый темный стиль)
+#  UI (Interface configurations and styling colors)
 # ════════════════════════════════════════════════════════════
 BG      = "#16161e"
 CARD    = "#1f1f2e"
@@ -319,3 +322,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     App(root)
     root.mainloop()
+    
